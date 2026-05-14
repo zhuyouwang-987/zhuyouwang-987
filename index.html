@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptHub - AI提示词库</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FCD000',
+                        secondary: '#1A1A1A',
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .tag-active {
+                background-color: #1A1A1A;
+                color: white;
+            }
+            .tag-clickable {
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .tag-clickable:hover {
+                background-color: #e5e7eb;
+                transform: scale(1.03);
+            }
+            .breadcrumb-link {
+                transition: color 0.2s;
+            }
+            .breadcrumb-link:hover {
+                color: #FCD000;
+            }
+            .skeleton {
+                animation: skeleton-loading 1.5s infinite;
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 200% 100%;
+            }
+            @keyframes skeleton-loading {
+                0% {
+                    background-position: 200% 0;
+                }
+                100% {
+                    background-position: -200% 0;
+                }
+            }
+            .modal-enter {
+                animation: modalIn 0.25s ease-out;
+            }
+            @keyframes modalIn {
+                from {
+                    opacity: 0;
+                    transform: scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- ==================== 登录/注册页面 ==================== -->
+    <div id="authPage" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-[9999]">
+        <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center mb-6">PromptHub 账号登录</h2>
+
+            <!-- 登录表单 -->
+            <div id="loginForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">账号</label>
+                        <input id="loginUser" type="text" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请输入账号">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">密码</label>
+                        <input id="loginPwd" type="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请输入密码">
+                    </div>
+                    <button id="loginBtn" class="w-full py-3 bg-primary rounded-lg font-medium hover:bg-primary/90 transition-colors">登录进入</button>
+                    <p id="loginTip" class="text-red-500 text-sm text-center hidden">账号或密码错误</p>
+                    <p class="text-center text-sm text-gray-500">
+                        没有账号？<button onclick="showRegister()" class="text-primary font-medium hover:underline">立即注册</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 注册表单 -->
+            <div id="registerForm" class="hidden">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">新账号</label>
+                        <input id="regUser" type="text" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请设置你的账号">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">新密码</label>
+                        <input id="regPwd" type="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请设置你的密码（至少6位）">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">确认密码</label>
+                        <input id="regPwd2" type="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="请再次输入密码">
+                    </div>
+                    <button id="regBtn" class="w-full py-3 bg-primary rounded-lg font-medium hover:bg-primary/90 transition-colors">注册账号</button>
+                    <p id="regTip" class="text-sm text-center hidden"></p>
+                    <p class="text-center text-sm text-gray-500">
+                        已有账号？<button onclick="showLogin()" class="text-primary font-medium hover:underline">返回登录</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 主网站内容 ==================== -->
+    <div id="mainPage" class="hidden">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white shadow-sm sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <!-- Logo - 点击返回首页 -->
+                    <div class="flex items-center">
+                        <a href="#/" class="text-2xl font-bold hover:opacity-80 transition-opacity" title="返回首页">
+                            Prompt<span class="bg-primary px-2 py-1 rounded text-black">Hub</span>
+                        </a>
+                    </div>
+                    <!-- 搜索栏 -->
+                    <div class="flex-1 max-w-2xl mx-8">
+                        <div class="relative">
+                            <input
+                            type="text"
+                            id="searchInput"
+                            class="block w-full pl-10 pr-20 py-3 border border-gray-200 rounded-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                            placeholder="在你的提示词库中搜索..."
+                            >
+                            <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <button id="searchBtn"
+                            class="absolute right-1 top-1 px-5 py-2 bg-primary text-black font-medium rounded-full hover:bg-primary/90 transition-colors">
+                            搜索
+                        </button>
+                        <button id="clearSearchBtn"
+                        class="absolute right-16 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 hover:text-gray-600 hidden items-center justify-center rounded-full"
+                        title="清除搜索">
+                        <i class="fa fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- 右侧操作按钮 -->
+        <div class="flex items-center space-x-3">
+            <!-- 同步菜单 -->
+            <div class="relative group">
+                <button class="px-3 py-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fa fa-sync mr-1"></i>同步
+                </button>
+                <div class="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg hidden group-hover:block z-50 border border-gray-100">
+                    <button onclick="exportData()" class="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center rounded-t-lg transition-colors">
+                        <i class="fa fa-download mr-2 text-gray-400"></i>导出备份
+                    </button>
+                    <label class="w-full px-4 py-2.5 text-left hover:bg-gray-50 flex items-center cursor-pointer rounded-b-lg transition-colors">
+                        <i class="fa fa-upload mr-2 text-gray-400"></i>导入恢复
+                        <input type="file" accept=".json" class="hidden" onchange="importData(this)">
+                    </label>
+                </div>
+            </div>
+            <!-- 上传按钮 -->
+            <a href="#/upload"
+            class="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors inline-flex items-center">
+            <i class="fa fa-plus mr-1"></i>上传记录
+        </a>
+        <!-- 退出按钮 -->
+        <button id="logoutBtn" class="px-3 py-2 text-gray-500 hover:text-red-500 transition-colors" title="退出登录">
+            <i class="fa fa-sign-out"></i> 退出
+        </button>
+    </div>
+</div>
+</div>
+<!-- 面包屑导航 -->
+<div id="breadcrumb" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-0">
+    <nav class="flex items-center space-x-2 text-sm text-gray-500 overflow-x-auto whitespace-nowrap" id="breadcrumbContent">
+        <a href="#/" class="breadcrumb-link inline-flex items-center hover:text-gray-700">
+            <i class="fa fa-home mr-1"></i>首页
+        </a>
+    </nav>
+</div>
+</nav>
+
+<!-- 主内容区域 -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="mainContent">
+    <!-- 页面标题 -->
+    <div class="text-center mb-8" id="pageHeader">
+        <h2 class="text-3xl font-bold mb-2">AI漫剧/短剧 提示词资料库</h2>
+        <p class="text-gray-600">支持在线链接 + 本地上传视频（最大100MB）</p>
+        <p class="text-xs text-gray-400 mt-1" id="resultCount"></p>
+    </div>
+
+    <!-- 分类筛选标签 -->
+    <div class="flex flex-wrap gap-2 mb-8 overflow-x-auto pb-2" id="categoryTags">
+        <a href="#/"
+        class="tag-btn tag-active px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors"
+        data-category="all">全部</a>
+        <a href="#/?category=fight"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="fight">打斗</a>
+        <a href="#/?category=camera"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="camera">运镜</a>
+        <a href="#/?category=xuanhuan"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="xuanhuan">玄幻仙侠</a>
+        <a href="#/?category=gptimage"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="gptimage">GPT-Image2</a>
+        <a href="#/?category=effect"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="effect">特效法相</a>
+        <a href="#/?category=wuxia"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="wuxia">武侠</a>
+        <a href="#/?category=other"
+        class="tag-btn px-4 py-2 bg-white rounded-full text-sm whitespace-nowrap hover:bg-gray-100 transition-colors"
+        data-category="other">其他</a>
+    </div>
+
+    <!-- 提示词卡片网格 -->
+    <div id="promptGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+
+    <!-- 空状态 -->
+    <div id="emptyState" class="text-center py-20 hidden">
+        <i class="fa fa-folder-open text-5xl text-gray-300 mb-4"></i>
+        <p class="text-gray-500 text-lg" id="emptyStateText">暂无记录，点击右上角「上传记录」添加内容</p>
+        <a href="#/upload" class="inline-block mt-4 px-6 py-3 bg-primary rounded-full font-medium hover:bg-primary/90 transition-colors">
+            <i class="fa fa-plus mr-2"></i>添加第一条记录
+        </a>
+    </div>
+
+    <!-- 相关推荐区域 -->
+    <div id="relatedSection" class="mt-12 hidden">
+        <h3 class="text-xl font-bold mb-4 flex items-center">
+            <i class="fa fa-link mr-2 text-primary"></i>相关推荐
+        </h3>
+        <div id="relatedGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </div>
+</main>
+
+<!-- ==================== 详情弹窗 ==================== -->
+<div id="detailModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" onclick="handleModalOverlayClick(event, 'detailModal')">
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden modal-enter" onclick="event.stopPropagation()">
+        <div class="flex flex-col md:flex-row h-full">
+            <!-- 左侧预览区 -->
+            <div class="md:w-1/2 bg-gray-100 relative flex-shrink-0">
+                <button id="closeModal" class="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center z-10 hover:bg-white shadow-sm transition-colors" title="关闭">
+                    <i class="fa fa-times text-gray-600 text-sm"></i>
+                </button>
+                <div id="modalPreview" class="p-4 h-full flex items-center justify-center min-h-[250px]"></div>
+            </div>
+            <!-- 右侧内容区 -->
+            <div class="md:w-1/2 p-6 overflow-y-auto flex flex-col" id="modalContent">
+                <div class="flex-1" id="modalContentInner"></div>
+                <!-- 分享链接区域 -->
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400 flex-shrink-0"><i class="fa fa-share-alt mr-1"></i>分享链接：</span>
+                        <input type="text" id="shareLinkInput" readonly
+                        class="flex-1 text-xs bg-gray-50 px-3 py-1.5 rounded border border-gray-200 text-gray-600 truncate"
+                        onclick="this.select()">
+                        <button onclick="copyShareLink()"
+                        class="px-3 py-1.5 text-xs bg-primary rounded font-medium hover:bg-primary/90 transition-colors flex-shrink-0">
+                        <i class="fa fa-copy mr-1"></i>复制
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== 编辑弹窗 ==================== -->
+<div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" onclick="handleModalOverlayClick(event, 'editModal')">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 modal-enter" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold flex items-center">
+                <i class="fa fa-edit mr-2 text-primary"></i>编辑提示词
+            </h3>
+            <a href="#/" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors" title="关闭">
+                <i class="fa fa-times text-gray-600"></i>
+            </a>
+        </div>
+        <form id="editForm" class="space-y-4">
+            <input type="hidden" id="editId">
+            <div>
+                <label class="block text-sm font-medium mb-1">标题 <span class="text-red-400">*</span></label>
+                <input id="editTitle" type="text" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">分类</label>
+                <select id="editCategory" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="fight">打斗</option>
+                    <option value="camera">运镜</option>
+                    <option value="xuanhuan">玄幻仙侠</option>
+                    <option value="gptimage">GPT-Image2</option>
+                    <option value="effect">特效法相</option>
+                    <option value="wuxia">武侠</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">标签（逗号分隔）</label>
+                <input id="editTags" type="text" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="例如：修仙,战斗,特效">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">预览视频</label>
+                <div class="space-y-2">
+                    <input type="url" id="editVideoUrl" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="在线视频链接（可选）">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500">或者本地上传：</span>
+                        <input type="file" id="editVideoFile" accept="video/*" class="text-sm">
+                    </div>
+                    <p class="text-xs text-gray-400"><i class="fa fa-info-circle mr-1"></i>本地上传视频会存储在浏览器中，建议不要超过100MB</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">预览图片在线链接</label>
+                <input id="editImage" type="url" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="https://...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">提示词内容 <span class="text-red-400">*</span></label>
+                <textarea id="editContent" rows="10" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="deleteCurrentPrompt()" class="px-5 py-2 border border-red-300 text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                    <i class="fa fa-trash mr-1"></i>删除此记录
+                </button>
+                <a href="#/" class="px-5 py-2 border rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">取消</a>
+                <button type="submit" class="px-5 py-2 bg-primary rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-1"></i>保存修改
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== 上传弹窗 ==================== -->
+<div id="uploadModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" onclick="handleModalOverlayClick(event, 'uploadModal')">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 modal-enter" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold flex items-center">
+                <i class="fa fa-plus-circle mr-2 text-primary"></i>新增记录提示词
+            </h3>
+            <a href="#/" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors" title="关闭">
+                <i class="fa fa-times text-gray-600"></i>
+            </a>
+        </div>
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">标题 <span class="text-red-400">*</span></label>
+                <input type="text" name="title" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" placeholder="请输入提示词标题">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">分类</label>
+                <select name="category" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50">
+                    <option value="fight">打斗</option>
+                    <option value="camera">运镜</option>
+                    <option value="xuanhuan">玄幻仙侠</option>
+                    <option value="gptimage">GPT-Image2</option>
+                    <option value="effect">特效法相</option>
+                    <option value="wuxia">武侠</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">标签（逗号分隔）</label>
+                <input type="text" name="tags" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="例如：修仙,战斗,特效">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">预览视频</label>
+                <div class="space-y-2">
+                    <input type="url" id="uploadVideoUrl" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="在线视频链接（可选）">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500">或者本地上传：</span>
+                        <input type="file" id="uploadVideoFile" accept="video/*" class="text-sm">
+                    </div>
+                    <p class="text-xs text-gray-400"><i class="fa fa-info-circle mr-1"></i>本地上传视频会存储在浏览器中，建议不要超过100MB</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">预览图片在线链接</label>
+                <input type="url" name="image" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="https://...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">提示词内容 <span class="text-red-400">*</span></label>
+                <textarea name="content" rows="10" required class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y" placeholder="请输入提示词内容..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <a href="#/" class="px-5 py-2 border rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">取消</a>
+                <button type="submit" class="px-5 py-2 bg-primary rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                    <i class="fa fa-check mr-1"></i>保存记录
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== Toast 提示 ==================== -->
+<div id="copyToast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-2.5 rounded-full hidden z-50 shadow-lg text-sm">
+    <i class="fa fa-check mr-2"></i><span id="toastText">已复制</span>
+</div>
+
+<div id="loadingToast" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-6 py-4 rounded-lg hidden z-50 shadow-lg">
+    <i class="fa fa-spinner fa-spin mr-2"></i>正在保存大文件，请稍候...
+</div>
+</div>
+
+<!-- ==================== 核心脚本 ==================== -->
+<script>
+    (function() {
+        // ============ 全局状态 ============
+        let currentUser = null;
+        let prompts = [];
+        let currentCategory = 'all';
+        let currentSearch = '';
+        let editingId = null;
+        let uploadVideoData = null;
+        let editVideoData = null;
+        let db = null;
+        let currentDetailId = null;
+        let searchDebounceTimer = null;
+        let isHandlingRoute = false;
+
+        // ============ IndexedDB 初始化 ============
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('PromptHubDB', 2);
+                request.onupgradeneeded = function(e) {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('users')) {
+                        db.createObjectStore('users', { keyPath: 'username' });
+                    }
+                    if (!db.objectStoreNames.contains('prompts')) {
+                        const store = db.createObjectStore('prompts', { keyPath: 'id' });
+                        store.createIndex('username', 'username', { unique: false });
+                        store.createIndex('category', 'category', { unique: false });
+                    }
+                };
+                request.onsuccess = function(e) {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = function(e) {
+                    reject(e);
+                };
+            });
+        }
+
+        // ============ 用户相关 ============
+        function saveUser(user, pwd) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('users', 'readwrite');
+                const store = tx.objectStore('users');
+                store.put({ username: user, password: pwd });
+                tx.oncomplete = resolve;
+            });
+        }
+
+        function getUser(user) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('users', 'readonly');
+                const store = tx.objectStore('users');
+                const req = store.get(user);
+                req.onsuccess = () => resolve(req.result);
+            });
+        }
+
+        // ============ 提示词数据操作 ============
+        function savePrompts() {
+            return new Promise((resolve) => {
+                showLoading();
+                const tx = db.transaction('prompts', 'readwrite');
+                const store = tx.objectStore('prompts');
+                const delReq = store.index('username').openCursor(IDBKeyRange.only(currentUser));
+                delReq.onsuccess = function(e) {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        cursor.delete();
+                        cursor.continue();
+                    }
+                };
+                tx.oncomplete = function() {
+                    const tx2 = db.transaction('prompts', 'readwrite');
+                    const store2 = tx2.objectStore('prompts');
+                    let count = 0;
+                    prompts.forEach(p => {
+                        p.username = currentUser;
+                        store2.put(p);
+                        count++;
+                    });
+                    tx2.oncomplete = function() {
+                        hideLoading();
+                        resolve();
+                    };
+                    tx2.onerror = function() {
+                        hideLoading();
+                        resolve();
+                    };
+                };
+            });
+        }
+
+        function loadPrompts() {
+            return new Promise((resolve) => {
+                const tx = db.transaction('prompts', 'readonly');
+                const store = tx.objectStore('prompts');
+                const index = store.index('username');
+                const req = index.getAll(IDBKeyRange.only(currentUser));
+                req.onsuccess = function() {
+                    resolve(req.result || []);
+                };
+                req.onerror = function() {
+                    resolve([]);
+                };
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loadingToast').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingToast').classList.add('hidden');
+        }
+
+        // ============ Toast ============
+        function showToast(text, icon = 'fa-check') {
+            const t = document.getElementById('copyToast');
+            document.getElementById('toastText').textContent = text;
+            t.querySelector('i').className = `fa ${icon} mr-2`;
+            t.classList.remove('hidden');
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.add('hidden'), 1800);
+        }
+
+        // ============ 登录/注册切换 ============
+        window.showRegister = function() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('regTip').classList.add('hidden');
+        };
+        window.showLogin = function() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('loginTip').classList.add('hidden');
+        };
+
+        // ============ 导出/导入 ============
+        window.exportData = function() {
+            const dataStr = JSON.stringify(prompts, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `prompthub_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('导出成功！');
+        };
+
+        window.importData = async function(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (Array.isArray(data)) {
+                            if (!confirm(`即将导入 ${data.length} 条记录，是否覆盖当前数据？`)) return;
+                            prompts = data;
+                            await savePrompts();
+                            renderPrompts();
+                            updateURLFromState();
+                            showToast('导入成功！');
+                        } else {
+                            alert('文件格式不正确，需要JSON数组格式。');
+                        }
+                    } catch (err) {
+                        alert('导入失败，请检查文件格式。');
+                    }
+                };
+                reader.readAsText(input.files[0]);
+                input.value = '';
+            }
+        };
+
+        // ============ 复制功能 ============
+        window.copyText = function(txt) {
+            navigator.clipboard.writeText(txt).then(() => {
+                showToast('已复制提示词内容');
+            }).catch(() => {
+                showToast('复制失败，请手动选择', 'fa-exclamation-circle');
+            });
+        };
+
+        window.copyShareLink = function() {
+            const input = document.getElementById('shareLinkInput');
+            if (input && input.value) {
+                navigator.clipboard.writeText(input.value).then(() => {
+                    showToast('分享链接已复制！');
+                }).catch(() => {
+                    showToast('复制失败', 'fa-exclamation-circle');
+                });
+            }
+        };
+
+        // ============ 删除当前编辑的提示词 ============
+        window.deleteCurrentPrompt = async function() {
+            if (!editingId) return;
+            if (confirm('确定要删除这条记录吗？此操作不可恢复。')) {
+                prompts = prompts.filter(x => x.id !== editingId);
+                await savePrompts();
+                renderPrompts();
+                showToast('删除成功', 'fa-trash');
+                // 返回首页
+                window.location.hash = '#/';
+            }
+        };
+
+        // ============ 获取过滤后的列表 ============
+        function getFilteredPrompts() {
+            let list = prompts;
+            if (currentCategory !== 'all') {
+                list = list.filter(x => x.category === currentCategory);
+            }
+            if (currentSearch) {
+                const kw = currentSearch.toLowerCase();
+                list = list.filter(x =>
+                    (x.title && x.title.toLowerCase().includes(kw)) ||
+                    (x.tags && x.tags.toLowerCase().includes(kw)) ||
+                    (x.content && x.content.toLowerCase().includes(kw))
+                );
+            }
+            return list;
+        }
+
+        // ============ 渲染提示词卡片 ============
+        function renderPrompts() {
+            const grid = document.getElementById('promptGrid');
+            const empty = document.getElementById('emptyState');
+            const emptyText = document.getElementById('emptyStateText');
+            const resultCount = document.getElementById('resultCount');
+            const relatedSection = document.getElementById('relatedSection');
+
+            grid.innerHTML = '';
+            relatedSection.classList.add('hidden');
+
+            const list = getFilteredPrompts();
+
+            // 更新结果计数
+            if (currentSearch || currentCategory !== 'all') {
+                resultCount.textContent = `共找到 ${list.length} 条记录`;
+                resultCount.classList.remove('hidden');
+            } else if (prompts.length > 0) {
+                resultCount.textContent = `共 ${prompts.length} 条记录`;
+                resultCount.classList.remove('hidden');
+            } else {
+                resultCount.textContent = '';
+                resultCount.classList.add('hidden');
+            }
+
+            if (list.length === 0) {
+                empty.classList.remove('hidden');
+                grid.classList.add('hidden');
+                if (currentSearch) {
+                    emptyText.textContent = `没有找到包含"${currentSearch}"的记录`;
+                } else if (currentCategory !== 'all') {
+                    const catNames = {
+                        fight: '打斗',
+                        camera: '运镜',
+                        xuanhuan: '玄幻仙侠',
+                        gptimage: 'GPT-Image2',
+                        effect: '特效法相',
+                        wuxia: '武侠',
+                        other: '其他'
+                    };
+                    emptyText.textContent = `"${catNames[currentCategory] || currentCategory}"分类下暂无记录`;
+                } else {
+                    emptyText.textContent = '暂无记录，点击右上角「上传记录」添加内容';
+                }
+                return;
+            }
+            empty.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            list.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl overflow-hidden shadow-sm card-hover cursor-pointer group';
+                card.setAttribute('data-id', item.id);
+
+                let previewHtml = '';
+                if (item.video) {
+                    previewHtml = `
+                        <div class="aspect-video bg-gray-100 relative overflow-hidden">
+                            <video src="${escapeHtml(item.video)}" class="w-full h-full object-cover" muted preload="metadata"></video>
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+                                <div class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow-md">
+                                    <i class="fa fa-play text-gray-800 ml-0.5 text-sm"></i>
+                                </div>
+                            </div>
+                        </div>`;
+                } else if (item.image) {
+                    previewHtml =
+                        `<img src="${escapeHtml(item.image)}" class="w-full aspect-video object-cover" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22320%22 height=%22180%22><rect fill=%22%23f3f4f6%22 width=%22320%22 height=%22180%22/><text x=%22160%22 y=%2290%22 text-anchor=%22middle%22 fill=%22%23d1d5db%22 font-size=%2236%22>🖼</text></svg>'">`;
+                } else {
+                    previewHtml = `
+                        <div class="aspect-video bg-gray-100 flex items-center justify-center">
+                            <i class="fa fa-file-text-o text-4xl text-gray-300"></i>
+                        </div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="relative">${previewHtml}
+                        <a href="#/detail/${item.id}" 
+                           class="absolute top-2 right-2 w-7 h-7 bg-white/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
+                           title="查看详情" onclick="event.stopPropagation();">
+                            <i class="fa fa-arrow-right text-gray-600 text-xs"></i>
+                        </a>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium line-clamp-2 mb-2 text-sm group-hover:text-primary transition-colors">${escapeHtml(item.title)}</h3>
+                        <div class="flex flex-wrap gap-1">
+                            ${(item.tags || '默认').split(',').map(t => {
+                                const tag = t.trim();
+                                return tag ? `<span class="text-xs bg-gray-100 px-2 py-1 rounded tag-clickable" onclick="event.stopPropagation();searchByTag('${escapeHtml(tag)}')" title="搜索标签：${escapeHtml(tag)}">#${escapeHtml(tag)}</span>` : '';
+                            }).join('')}
+                        </div>
+                        <div class="mt-3 flex items-center justify-between">
+                            <span class="text-xs text-gray-400">${getCategoryName(item.category)}</span>
+                            <a href="#/detail/${item.id}" 
+                               class="text-xs text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                               onclick="event.stopPropagation();">
+                                查看详情 <i class="fa fa-chevron-right text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>`;
+                card.onclick = () => navigateToDetail(item.id);
+                grid.appendChild(card);
+            });
+        }
+
+        function getCategoryName(cat) {
+            const names = {
+                fight: '打斗',
+                camera: '运镜',
+                xuanhuan: '玄幻仙侠',
+                gptimage: 'GPT-Image2',
+                effect: '特效法相',
+                wuxia: '武侠',
+                other: '其他'
+            };
+            return names[cat] || cat;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ============ 搜索标签 ============
+        window.searchByTag = function(tag) {
+            document.getElementById('searchInput').value = tag;
+            currentSearch = tag;
+            currentCategory = 'all';
+            updateCategoryTagsUI();
+            updateURLFromState();
+            renderPrompts();
+            showToast(`搜索标签：${tag}`, 'fa-search');
+        };
+
+        // ============ 导航到详情页 ============
+        function navigateToDetail(id) {
+            window.location.hash = `#/detail/${id}`;
+        }
+
+        // ============ 更新分类标签UI ============
+        function updateCategoryTagsUI() {
+            document.querySelectorAll('#categoryTags .tag-btn').forEach(btn => {
+                const cat = btn.getAttribute('data-category');
+                btn.classList.remove('tag-active');
+                btn.classList.add('bg-white', 'hover:bg-gray-100');
+                if (cat === currentCategory) {
+                    btn.classList.add('tag-active');
+                    btn.classList.remove('bg-white', 'hover:bg-gray-100');
+                }
+            });
+        }
+
+        // ============ 更新URL（从状态） ============
+        function updateURLFromState() {
+            if (isHandlingRoute) return;
+            const params = new URLSearchParams();
+            if (currentCategory !== 'all') params.set('category', currentCategory);
+            if (currentSearch) params.set('search', currentSearch);
+            const qs = params.toString();
+            const newHash = '#/' + (qs ? '?' + qs : '');
+            if (window.location.hash !== newHash) {
+                isHandlingRoute = true;
+                window.location.hash = newHash;
+                setTimeout(() => { isHandlingRoute = false; }, 100);
+            }
+        }
+
+        // ============ 更新面包屑 ============
+        function updateBreadcrumb(type, data) {
+            const bc = document.getElementById('breadcrumbContent');
+            let html = `<a href="#/" class="breadcrumb-link inline-flex items-center hover:text-gray-700">
+                <i class="fa fa-home mr-1"></i>首页
+            </a>`;
+
+            if (type === 'detail' && data) {
+                html += `<i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i>
+                    <a href="#/?category=${data.category}" class="breadcrumb-link hover:text-gray-700">${getCategoryName(data.category)}</a>
+                    <i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i>
+                    <span class="text-gray-700 font-medium truncate max-w-[200px]">${escapeHtml(data.title)}</span>`;
+            } else if (type === 'edit' && data) {
+                html += `<i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i>
+                    <span class="text-gray-700">编辑：</span>
+                    <span class="text-gray-700 font-medium truncate max-w-[200px]">${escapeHtml(data.title)}</span>`;
+            } else if (type === 'upload') {
+                html +=
+                    `<i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i><span class="text-gray-700 font-medium">新增记录</span>`;
+            } else if (currentCategory !== 'all') {
+                html +=
+                    `<i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i><span class="text-gray-700">${getCategoryName(currentCategory)}</span>`;
+            } else if (currentSearch) {
+                html +=
+                    `<i class="fa fa-chevron-right text-xs mx-2 text-gray-300"></i><span class="text-gray-700">搜索："${escapeHtml(currentSearch)}"</span>`;
+            }
+
+            bc.innerHTML = html;
+        }
+
+        // ============ 打开详情弹窗 ============
+        function openDetailModal(p) {
+            currentDetailId = p.id;
+            let previewHtml = '';
+            if (p.video) {
+                previewHtml =
+                    `<video src="${escapeHtml(p.video)}" class="w-full rounded-lg max-h-[400px]" controls playsinline></video>`;
+            } else if (p.image) {
+                previewHtml =
+                    `<img src="${escapeHtml(p.image)}" class="w-full rounded-lg max-h-[400px] object-contain" alt="${escapeHtml(p.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%23f3f4f6%22 width=%22400%22 height=%22300%22/><text x=%22200%22 y=%22150%22 text-anchor=%22middle%22 fill=%22%23d1d5db%22 font-size=%2248%22>🖼</text></svg>'">`;
+            } else {
+                previewHtml = `
+                    <div class="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center min-h-[200px]">
+                        <i class="fa fa-file-text-o text-5xl text-gray-300"></i>
+                    </div>`;
+            }
+            document.getElementById('modalPreview').innerHTML = previewHtml;
+            document.getElementById('modalContentInner').innerHTML = `
+                <h2 class="text-xl font-bold mb-3">${escapeHtml(p.title)}</h2>
+                <div class="mb-4 flex flex-wrap gap-1">
+                    ${(p.tags || '默认').split(',').map(t => {
+                        const tag = t.trim();
+                        return tag ? `<span class="text-sm bg-gray-100 px-3 py-1 rounded tag-clickable" onclick="searchByTag('${escapeHtml(tag)}');closeDetailModal();" title="搜索标签：${escapeHtml(tag)}">#${escapeHtml(tag)}</span>` : '';
+                    }).join('')}
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg text-sm mb-4 whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto">${escapeHtml(p.content)}</div>
+                <div class="flex gap-2">
+                    <a href="#/edit/${p.id}" class="flex-1 py-3 border rounded-lg font-medium text-center hover:bg-gray-50 transition-colors inline-flex items-center justify-center">
+                        <i class="fa fa-edit mr-2"></i>编辑
+                    </a>
+                    <button onclick="copyText(document.getElementById('copySource').textContent)" class="flex-1 py-3 bg-primary rounded-lg font-medium flex items-center justify-center hover:bg-primary/90 transition-colors">
+                        <i class="fa fa-copy mr-2"></i>一键复制
+                    </button>
+                </div>
+                <span id="copySource" class="hidden">${escapeHtml(p.content)}</span>`;
+
+            // 设置分享链接
+            const shareLink = window.location.origin + window.location.pathname + '#/detail/' + p.id;
+            document.getElementById('shareLinkInput').value = shareLink;
+
+            // 更新面包屑
+            updateBreadcrumb('detail', p);
+
+            // 显示相关推荐
+            showRelatedPrompts(p);
+
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showRelatedPrompts(p) {
+            const relatedSection = document.getElementById('relatedSection');
+            const relatedGrid = document.getElementById('relatedGrid');
+            relatedGrid.innerHTML = '';
+
+            // 找同分类的其他提示词（排除当前）
+            const related = prompts.filter(x => x.category === p.category && x.id !== p.id).slice(0, 4);
+
+            if (related.length === 0) {
+                relatedSection.classList.add('hidden');
+                return;
+            }
+
+            relatedSection.classList.remove('hidden');
+            related.forEach(item => {
+                const card = document.createElement('div');
+                card.className =
+                    'bg-white rounded-lg overflow-hidden shadow-sm card-hover cursor-pointer p-3 border border-gray-100';
+                card.innerHTML = `
+                    <h4 class="text-sm font-medium line-clamp-2 mb-1 hover:text-primary transition-colors">${escapeHtml(item.title)}</h4>
+                    <p class="text-xs text-gray-400">${getCategoryName(item.category)}</p>
+                `;
+                card.onclick = () => {
+                    closeDetailModal();
+                    navigateToDetail(item.id);
+                };
+                relatedGrid.appendChild(card);
+            });
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+            currentDetailId = null;
+            document.getElementById('relatedSection').classList.add('hidden');
+            // 恢复URL
+            if (window.location.hash.includes('/detail/')) {
+                updateURLFromState();
+            }
+        }
+
+        // ============ 模态框遮罩点击关闭 ============
+        window.handleModalOverlayClick = function(event, modalId) {
+            if (event.target === document.getElementById(modalId)) {
+                if (modalId === 'detailModal') {
+                    closeDetailModal();
+                } else if (modalId === 'editModal') {
+                    window.location.hash = '#/';
+                } else if (modalId === 'uploadModal') {
+                    window.location.hash = '#/';
+                }
+            }
+        };
+
+        // ============ 路由处理 ============
+        function handleRoute() {
+            if (isHandlingRoute) return;
+            isHandlingRoute = true;
+
+            const hash = window.location.hash || '#/';
+            const hashWithoutQuery = hash.split('?')[0];
+            const queryString = hash.includes('?') ? hash.split('?')[1] : '';
+
+            // 解析查询参数
+            const params = new URLSearchParams(queryString);
+            const routeCategory = params.get('category') || 'all';
+            const routeSearch = params.get('search') || '';
+
+            // 关闭所有弹窗
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+            document.getElementById('uploadModal').classList.add('hidden');
+            document.getElementById('uploadModal').classList.remove('flex');
+            document.body.style.overflow = '';
+            currentDetailId = null;
+            document.getElementById('relatedSection').classList.add('hidden');
+
+            // 路由匹配
+            const detailMatch = hashWithoutQuery.match(/^#\/detail\/(\d+)$/);
+            const editMatch = hashWithoutQuery.match(/^#\/edit\/(\d+)$/);
+
+            if (hashWithoutQuery === '#/upload') {
+                // 上传页面
+                document.getElementById('uploadForm').reset();
+                uploadVideoData = null;
+                document.getElementById('uploadModal').classList.remove('hidden');
+                document.getElementById('uploadModal').classList.add('flex');
+                document.body.style.overflow = 'hidden';
+                updateBreadcrumb('upload');
+                // 保持主页状态不变
+            } else if (detailMatch) {
+                // 详情页
+                const id = parseInt(detailMatch[1]);
+                const item = prompts.find(x => x.id === id);
+                if (item) {
+                    openDetailModal(item);
+                } else {
+                    showToast('该记录不存在或已被删除', 'fa-exclamation-circle');
+                    window.location.hash = '#/';
+                }
+                // 保持主页状态
+            } else if (editMatch) {
+                // 编辑页
+                const id = parseInt(editMatch[1]);
+                const item = prompts.find(x => x.id === id);
+                if (item) {
+                    openEditModal(item);
+                } else {
+                    showToast('该记录不存在或已被删除', 'fa-exclamation-circle');
+                    window.location.hash = '#/';
+                }
+                // 保持主页状态
+            } else {
+                // 主页 - 更新筛选状态
+                if (routeCategory !== currentCategory || routeSearch !== currentSearch) {
+                    currentCategory = routeCategory;
+                    currentSearch = routeSearch;
+                    document.getElementById('searchInput').value = currentSearch;
+                    updateCategoryTagsUI();
+                    updateClearSearchBtn();
+                    renderPrompts();
+                }
+                updateBreadcrumb('home');
+            }
+
+            // 更新分类标签的href以反映当前搜索状态
+            updateCategoryTagLinks();
+
+            setTimeout(() => { isHandlingRoute = false; }, 100);
+        }
+
+        function updateCategoryTagLinks() {
+            document.querySelectorAll('#categoryTags .tag-btn').forEach(btn => {
+                const cat = btn.getAttribute('data-category');
+                const params = new URLSearchParams();
+                if (cat !== 'all') params.set('category', cat);
+                if (currentSearch && cat === 'all') params.set('search', currentSearch);
+                const qs = params.toString();
+                btn.setAttribute('href', '#/' + (qs ? '?' + qs : ''));
+            });
+        }
+
+        function updateClearSearchBtn() {
+            const btn = document.getElementById('clearSearchBtn');
+            if (currentSearch) {
+                btn.classList.remove('hidden');
+                btn.classList.add('flex');
+            } else {
+                btn.classList.add('hidden');
+                btn.classList.remove('flex');
+            }
+        }
+
+        function openEditModal(item) {
+            editingId = item.id;
+            editVideoData = null;
+
+            document.getElementById('editId').value = item.id;
+            document.getElementById('editTitle').value = item.title || '';
+            document.getElementById('editCategory').value = item.category || 'other';
+            document.getElementById('editTags').value = item.tags || '';
+            document.getElementById('editVideoUrl').value = item.video || '';
+            document.getElementById('editImage').value = item.image || '';
+            document.getElementById('editContent').value = item.content || '';
+
+            updateBreadcrumb('edit', item);
+
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // ============ 监听hash变化 ============
+        window.addEventListener('hashchange', handleRoute);
+
+        // ============ 搜索输入处理 ============
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const val = this.value;
+            updateClearSearchBtn();
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                currentSearch = val;
+                currentCategory = 'all';
+                updateCategoryTagsUI();
+                updateURLFromState();
+                renderPrompts();
+                updateBreadcrumb('home');
+                updateCategoryTagLinks();
+            }, 400);
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            const val = document.getElementById('searchInput').value;
+            currentSearch = val;
+            currentCategory = 'all';
+            updateCategoryTagsUI();
+            updateURLFromState();
+            renderPrompts();
+            updateBreadcrumb('home');
+            updateCategoryTagLinks();
+            updateClearSearchBtn();
+        });
+
+        document.getElementById('clearSearchBtn').addEventListener('click', function() {
+            document.getElementById('searchInput').value = '';
+            currentSearch = '';
+            updateURLFromState();
+            renderPrompts();
+            updateBreadcrumb('home');
+            updateCategoryTagLinks();
+            updateClearSearchBtn();
+        });
+
+        // ============ 分类标签点击 ============
+        document.getElementById('categoryTags').addEventListener('click', function(e) {
+            const btn = e.target.closest('.tag-btn');
+            if (!btn) return;
+            e.preventDefault();
+            const cat = btn.getAttribute('data-category');
+            currentCategory = cat;
+            updateCategoryTagsUI();
+            updateURLFromState();
+            renderPrompts();
+            updateBreadcrumb('home');
+            updateCategoryTagLinks();
+        });
+
+        // ============ 登录 ============
+        document.getElementById('loginBtn').addEventListener('click', async function() {
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPwd').value.trim();
+            if (!u || !p) {
+                alert('请输入账号和密码');
+                return;
+            }
+            const user = await getUser(u);
+            if (user && user.password === p) {
+                await loginSuccess(u);
+            } else {
+                document.getElementById('loginTip').classList.remove('hidden');
+                setTimeout(() => document.getElementById('loginTip').classList.add('hidden'), 2000);
+            }
+        });
+
+        // 支持回车登录
+        document.getElementById('loginPwd').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+        });
+        document.getElementById('loginUser').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+        });
+
+        // ============ 注册 ============
+        document.getElementById('regBtn').addEventListener('click', async function() {
+            const u = document.getElementById('regUser').value.trim();
+            const p = document.getElementById('regPwd').value.trim();
+            const p2 = document.getElementById('regPwd2').value.trim();
+            const tip = document.getElementById('regTip');
+
+            if (!u || !p || !p2) {
+                tip.innerHTML = '请填写完整信息';
+                tip.className = 'text-red-500 text-sm text-center';
+                tip.classList.remove('hidden');
+                return;
+            }
+            if (p !== p2) {
+                tip.innerHTML = '两次密码不一致';
+                tip.className = 'text-red-500 text-sm text-center';
+                tip.classList.remove('hidden');
+                return;
+            }
+            if (p.length < 6) {
+                tip.innerHTML = '密码至少6位';
+                tip.className = 'text-red-500 text-sm text-center';
+                tip.classList.remove('hidden');
+                return;
+            }
+            if (u.length < 2) {
+                tip.innerHTML = '账号至少2个字符';
+                tip.className = 'text-red-500 text-sm text-center';
+                tip.classList.remove('hidden');
+                return;
+            }
+
+            const existing = await getUser(u);
+            if (existing) {
+                tip.innerHTML = '账号已存在，请换一个';
+                tip.className = 'text-red-500 text-sm text-center';
+                tip.classList.remove('hidden');
+                return;
+            }
+
+            await saveUser(u, p);
+            tip.innerHTML = '注册成功！正在跳转...';
+            tip.className = 'text-green-500 text-sm text-center';
+            tip.classList.remove('hidden');
+
+            setTimeout(async () => {
+                await loginSuccess(u);
+            }, 800);
+        });
+
+        async function loginSuccess(u) {
+            currentUser = u;
+            localStorage.setItem('prompthub_current', u);
+            document.getElementById('authPage').classList.add('hidden');
+            document.getElementById('mainPage').classList.remove('hidden');
+            prompts = await loadPrompts();
+            currentCategory = 'all';
+            currentSearch = '';
+            document.getElementById('searchInput').value = '';
+            updateClearSearchBtn();
+            updateCategoryTagsUI();
+            renderPrompts();
+            updateBreadcrumb('home');
+            updateCategoryTagLinks();
+            // 处理初始路由
+            handleRoute();
+        }
+
+        // ============ 退出登录 ============
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('prompthub_current');
+                window.location.hash = '';
+                location.reload();
+            }
+        });
+
+        // ============ 关闭详情弹窗 ============
+        document.getElementById('closeModal').addEventListener('click', function() {
+            closeDetailModal();
+        });
+
+        // ============ 编辑表单提交 ============
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const item = prompts.find(x => x.id === editingId);
+            if (item) {
+                const videoUrl = document.getElementById('editVideoUrl').value.trim();
+                const finalVideo = editVideoData || videoUrl;
+
+                item.title = document.getElementById('editTitle').value.trim();
+                item.category = document.getElementById('editCategory').value;
+                item.tags = document.getElementById('editTags').value.trim() || '默认';
+                item.video = finalVideo;
+                item.image = document.getElementById('editImage').value.trim();
+                item.content = document.getElementById('editContent').value.trim();
+                await savePrompts();
+                renderPrompts();
+                showToast('修改成功！');
+                window.location.hash = '#/';
+            }
+        });
+
+        // ============ 上传表单提交 ============
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fd = new FormData(this);
+            const videoUrl = document.getElementById('uploadVideoUrl').value.trim();
+            const finalVideo = uploadVideoData || videoUrl;
+
+            const newItem = {
+                id: Date.now(),
+                title: fd.get('title').trim(),
+                category: fd.get('category'),
+                tags: fd.get('tags') || '默认',
+                image: fd.get('image') || '',
+                video: finalVideo,
+                content: fd.get('content').trim(),
+                username: currentUser
+            };
+            prompts.unshift(newItem);
+            await savePrompts();
+            renderPrompts();
+            showToast('保存成功！');
+            window.location.hash = '#/';
+        });
+
+        // ============ 视频文件处理 ============
+        document.getElementById('uploadVideoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 100 * 1024 * 1024) {
+                    alert('文件太大了！建议不要超过100MB');
+                    this.value = '';
+                    return;
+                }
+                showLoading();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadVideoData = e.target.result;
+                    hideLoading();
+                    showToast('视频已准备好，点击保存即可', 'fa-video');
+                };
+                reader.onerror = function() {
+                    hideLoading();
+                    alert('视频读取失败，请重试');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('editVideoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 100 * 1024 * 1024) {
+                    alert('文件太大了！建议不要超过100MB');
+                    this.value = '';
+                    return;
+                }
+                showLoading();
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editVideoData = e.target.result;
+                    hideLoading();
+                    showToast('视频已准备好，点击保存即可', 'fa-video');
+                };
+                reader.onerror = function() {
+                    hideLoading();
+                    alert('视频读取失败，请重试');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // ============ 键盘快捷键 ============
+        document.addEventListener('keydown', function(e) {
+            // ESC 关闭弹窗
+            if (e.key === 'Escape') {
+                const detailModal = document.getElementById('detailModal');
+                const editModal = document.getElementById('editModal');
+                const uploadModal = document.getElementById('uploadModal');
+                if (!detailModal.classList.contains('hidden')) {
+                    closeDetailModal();
+                } else if (!editModal.classList.contains('hidden')) {
+                    window.location.hash = '#/';
+                } else if (!uploadModal.classList.contains('hidden')) {
+                    window.location.hash = '#/';
+                }
+            }
+            // Ctrl+K 或 / 聚焦搜索
+            if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && !e.ctrlKey && !e.metaKey &&
+                document.activeElement === document.body)) {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+        });
+
+        // ============ 初始化 ============
+        async function init() {
+            await initDB();
+            const savedUser = localStorage.getItem('prompthub_current');
+            if (savedUser) {
+                const user = await getUser(savedUser);
+                if (user) {
+                    currentUser = savedUser;
+                    document.getElementById('authPage').classList.add('hidden');
+                    document.getElementById('mainPage').classList.remove('hidden');
+                    prompts = await loadPrompts();
+                    currentCategory = 'all';
+                    currentSearch = '';
+                    updateCategoryTagsUI();
+                    updateClearSearchBtn();
+                    renderPrompts();
+                    updateCategoryTagLinks();
+                    // 处理初始URL
+                    handleRoute();
+                } else {
+                    // 用户数据异常，清除登录状态
+                    localStorage.removeItem('prompthub_current');
+                }
+            }
+        }
+
+        init();
+
+        // ============ 暴露到全局 ============
+        window.searchByTag = window.searchByTag;
+        window.copyText = window.copyText;
+        window.copyShareLink = window.copyShareLink;
+        window.deleteCurrentPrompt = window.deleteCurrentPrompt;
+        window.closeDetailModal = closeDetailModal;
+        window.handleModalOverlayClick = window.handleModalOverlayClick;
+    })();
+</script>
+</body>
+</html>
